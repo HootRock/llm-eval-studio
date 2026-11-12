@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>结果与报告 · LLM Eval Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/base.css">
+<style>
+.report{
+  background:var(--card);border:1px solid var(--rule);border-radius:4px;
+  padding:30px 34px 26px;
+}
+.rp-eyebrow{font-size:10.5px;letter-spacing:.24em;color:var(--ink-4);margin-bottom:11px}
+.rp-title{
+  font-family:var(--serif);font-size:25px;font-weight:600;
+  letter-spacing:.02em;line-height:1.32;margin-bottom:9px;
+}
+.rp-sub{font-size:12px;color:var(--ink-3);margin-bottom:18px;line-height:1.7}
+.rp-meta{
+  display:flex;border-top:2px solid var(--ink);border-bottom:1px solid var(--rule);
+  padding:11px 0;margin-bottom:24px;
+}
+.rp-meta .m{flex:1;padding-right:16px;border-right:1px solid var(--rule);min-width:0}
+.rp-meta .m:last-child{border-right:0}
+.rp-meta .k{font-size:9.5px;letter-spacing:.13em;color:var(--ink-4);text-transform:uppercase;margin-bottom:5px}
+.rp-meta .v{font-size:11.5px;color:var(--ink);font-family:var(--mono);overflow-wrap:anywhere}
+.rp-sec{
+  display:flex;align-items:baseline;gap:10px;margin:24px 0 11px;
+}
+.rp-sec .no{font-family:var(--serif);font-size:13.5px;color:var(--blue);font-weight:600}
+.rp-sec .t{font-family:var(--serif);font-size:14.5px;font-weight:600}
+.rp-sec .r{margin-left:auto;font-size:10.5px;color:var(--ink-4);font-family:var(--mono)}
+.rp-tbl{width:100%;border-collapse:collapse}
+.rp-tbl th{
+  font-size:10.5px;color:var(--ink-3);font-weight:400;text-align:left;
+  padding:0 10px 8px 0;border-bottom:1px solid var(--rule-2);
+}
+.rp-tbl th.n{text-align:right}
+.rp-tbl td{
+  padding:8px 10px 8px 0;border-bottom:1px solid var(--rule);
+  font-size:12px;color:var(--ink-2);
+}
+.rp-tbl td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+.rp-tbl tr:last-child td{border-bottom:0}
+.rp-verdict{
+  background:var(--paper-2);border-left:2.5px solid var(--blue);
+  padding:12px 15px;margin-top:14px;font-size:12px;color:var(--ink-2);line-height:1.85;
+}
+.rp-verdict b{color:var(--ink);font-weight:600}
+.rp-foot{
+  margin-top:22px;padding-top:11px;border-top:1px solid var(--rule);
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10px;color:var(--ink-4);
+}
+.drop{
+  border:1.5px dashed var(--rule-2);border-radius:4px;background:var(--paper-2);
+  padding:40px 24px;text-align:center;color:var(--ink-3);font-size:12.5px;
+  line-height:1.8;cursor:pointer;
+}
+.drop:hover,.drop.hot{border-color:var(--blue);background:var(--card)}
+.drop b{
+  display:block;font-family:var(--serif);font-size:16px;color:var(--ink);
+  font-weight:600;margin-bottom:8px;
+}
+.drop .mono{font-size:11.5px;color:var(--ink-4)}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="top">
+    <a class="brand" href="index.html"><span class="mark" aria-hidden="true">评</span>LLM Eval Studio</a>
+    <nav aria-label="主导航">
+    <a href="index.html">开始</a>
+    <a href="run.html">独立测试</a>
+    <a href="preview.html">预览结果</a>
+    <a href="results.html" class="on" aria-current="page">结果与报告</a>
+  </nav>
+    <div class="meta">
+      <span id="nav-metric">未载入</span>
+      <span>结果仅供参考</span>
+    </div>
+  </header>
+
+  <div class="disclaim" style="margin-top:22px">
+    <b>展示结果仅供参考。</b>
+    报告由评测结果 JSON 生成，全流程在本地完成，不上传任何内容。
+    样例数据为合成样本；<b>保密数据集不参与本流程</b>。
+  </div>
+
+  <!-- 未载入时 -->
+  <div class="card" id="emptyCard" style="margin-top:22px">
+    <div class="step-h" style="display:flex;align-items:baseline;gap:11px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--rule)">
+      <span style="font-family:var(--serif);font-size:14.5px;font-weight:600">载入评测结果</span>
+      <span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-4)">JSON 格式</span>
+    </div>
+    <div style="padding:20px">
+      <div class="drop" id="drop">
+        <b>拖入评测结果 JSON，或点击选择文件</b>
+        在评测控制台跑完一轮后，点「下载 JSON」即可得到该文件。<br>
+        <span class="mono">评测结果_工具调用_20251111_143022.json</span>
+      </div>
+      <input type="file" id="fileInput" accept=".json" hidden>
+      <div style="margin-top:14px;font-size:11.5px;color:var(--ink-4);line-height:1.7">
+        上次运行的结果会自动记忆在本机，重新打开本页即可直接查看。
+      </div>
+    </div>
+  </div>
+
+  <!-- 报告 -->
+  <div id="reportWrap" hidden style="margin-top:22px">
+    <div class="btnrow" style="margin-bottom:16px">
+      <button class="btn" id="btn-repick">换一份结果</button>
+      <button class="btn" id="btn-print">导出为 PDF（浏览器打印）</button>
+      <button class="btn" id="btn-csv">下载明细 CSV</button>
+    </div>
+
+    <div class="report" id="report"></div>
+
+    <div id="vizWrap" style="margin-top:22px"></div>
+  </div>
+
+  <div class="foot">
+    <span>OPENCOMPASS 0.4.2 · 结果与报告</span>
+    <span>结果仅供参考</span>
+  </div>
+</div>
+
+<script src="assets/eval.js"></script>
+<script src="assets/viz.js"></script>
+<script>
+/* ============================================================================
+   读取评测结果 JSON，渲染报告与可视化。
+   只读用户主动拖入的文件或本机上次运行的结果，不做任何上传。
+   ============================================================================ */
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var el = Viz.el;
+  var STORE = 'llm-eval-last-result';
+
+  var META = {
+    tool: { name: '工具调用', sub: '工具名称与参数字段 F1、执行率' },
+    hallu: { name: '幻觉率', sub: 'HalluQA 四步判定' },
+    leak: { name: '信息泄露', sub: '泄露条数与事故率' }
+  };
+
+  function pct(v, d) { return (v * 100).toFixed(d == null ? 2 : d); }
+  function num(v, d) { return Number(v).toFixed(d == null ? 3 : d); }
+
+  /* ---------------- 载入 ---------------- */
+  function load(obj) {
+    if (!obj || !obj.metric || !obj.summary) {
+      alert('文件格式不符合预期：缺少 metric 或 summary 字段。');
+      return;
+    }
+    try { localStorage.setItem(STORE, JSON.stringify(obj)); } catch (e) { /* 隐私模式 */ }
+    render(obj);
+  }
+
+  function tryRestore() {
+    var raw = null;
+    try { raw = localStorage.getItem(STORE); } catch (e) { return false; }
+    if (!raw) return false;
+    try { render(JSON.parse(raw)); return true; } catch (e) { return false; }
+  }
+
+  /* ---------------- 渲染 ---------------- */
+  function render(r) {
+    $('emptyCard').hidden = true;
+    $('reportWrap').hidden = false;
+    var m = META[r.metric] || { name: r.metricName || '评测', sub: '' };
+    $('nav-metric').textContent = m.name;
+
+    var rep = $('report');
+    rep.textContent = '';
+
+    // 抬头
+    rep.appendChild(el('div', 'rp-eyebrow', '大 模 型 测 评 报 告'));
+    rep.appendChild(el('h2', 'rp-title', m.name + ' —— 评测结果'));
+    rep.appendChild(el('div', 'rp-sub', m.sub + '　|　结果仅供参考，样例为合成数据'));
+
+    var meta = el('div', 'rp-meta');
+    [
+      ['模型', r.model || '—'],
+      ['样本量', (r.summary.n || r.summary.samples || 0) + ' 条'],
+      ['耗时', ((r.elapsedMs || 0) / 1000).toFixed(1) + ' s'],
+      ['生成时间', (r.generatedAt || '').replace('T', ' ').slice(0, 19)]
+    ].forEach(function (kv) {
+      var d = el('div', 'm');
+      d.appendChild(el('div', 'k', kv[0]));
+      d.appendChild(el('div', 'v', kv[1]));
+      meta.appendChild(d);
+    });
+    rep.appendChild(meta);
+
+    // 指标汇总
+    rep.appendChild(section('一', '指标汇总', r.summary.n ? (r.summary.n + ' 条样本') : ''));
+
+    var rows = summaryRows(r);
+    var tbl = el('table', 'rp-tbl');
+    var thead = el('thead');
+    var trh = el('tr');
+    rows.head.forEach(function (h, i) {
+      var th = el('th', i ? 'n' : null, h);
+      trh.appendChild(th);
+    });
+    thead.appendChild(trh);
+    tbl.appendChild(thead);
+    var tb = el('tbody');
+    rows.body.forEach(function (row) {
+      var tr = el('tr');
+      row.forEach(function (c, i) {
+        tr.appendChild(el('td', i ? 'n' : null, c));
+      });
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+    rep.appendChild(tbl);
+
+    // 结论
+    var v = el('div', 'rp-verdict');
+    v.appendChild(el('b', null, '结论：'));
+    v.appendChild(document.createTextNode(conclusion(r)));
+    rep.appendChild(v);
+
+    // 判定口径
+    rep.appendChild(section('二', '判定口径'));
+    var note = el('div', 'rp-verdict');
+    note.style.borderLeftColor = 'var(--ink-4)';
+    note.style.background = 'var(--paper-2)';
+    note.appendChild(document.createTextNode(criteria(r)));
+    rep.appendChild(note);
+
+    var foot = el('div', 'rp-foot');
+    foot.appendChild(el('span', null, '由评测平台生成 · 结果仅供参考'));
+    foot.appendChild(el('span', null, '第 1 页 / 共 1 页'));
+    rep.appendChild(foot);
+
+    renderViz(r);
+    $('btn-csv').onclick = function () { exportCSV(r); };
+  }
+
+  function section(no, title, right) {
+    var s = el('div', 'rp-sec');
+    s.appendChild(el('span', 'no', no));
+    s.appendChild(el('span', 't', title));
+    if (right) s.appendChild(el('span', 'r', right));
+    return s;
+  }
+
+  function summaryRows(r) {
+    var s = r.summary;
+    if (r.metric === 'tool') {
+      return {
+        head: ['指标', '数值', '说明'],
+        body: [
+          ['工具名称 F1', num(s.nameF1), '预测名称与期望名称的宏平均'],
+          ['参数字段 F1', num(s.paramF1), '字段级，缺字段与错值均计负'],
+          ['执行率', pct(s.execRate) + '%', '区间 [' + pct(s.execCI[0], 1) + ', ' + pct(s.execCI[1], 1) + ']'],
+          ['解析失败率', pct(s.parseFailRate) + '%', '未产生调用而返回文本']
+        ]
+      };
+    }
+    if (r.metric === 'hallu') {
+      return {
+        head: ['指标', '数值', '说明'],
+        body: [
+          ['幻觉率', pct(s.hallucinationRate) + '%', '区间 [' + pct(s.ci95[0], 1) + ', ' + pct(s.ci95[1], 1) + ']'],
+          ['有效样本', String(s.valid), '去掉空应答'],
+          ['拒答率', pct(s.rejectionRate) + '%', '命中拒答套话，不计幻觉'],
+          ['纠正前提', pct(s.correctionRate) + '%', '纠正题目错误前提，判为正确']
+        ]
+      };
+    }
+    var types = Object.keys(s.byType || {});
+    return {
+      head: ['指标', '数值', '说明'],
+      body: [
+        ['事故率', pct(s.leakRate) + '%', '区间 [' + pct(s.ci95[0], 1) + ', ' + pct(s.ci95[1], 1) + ']'],
+        ['泄露条数', String(s.totalLeaked), '共植入 ' + (s.totalSecrets || 0) + ' 项'],
+        ['平均每次', num(s.perHit, 2), '按泄露样本平均'],
+        ['涉及类型', types.length ? types.join('、') : '无', '按实体类型统计']
+      ]
+    };
+  }
+
+  function conclusion(r) {
+    var s = r.summary;
+    if (r.metric === 'tool') {
+      var c = [];
+      c.push('工具名称 F1 为 ' + num(s.nameF1) + '，参数字段 F1 为 ' + num(s.paramF1) + '。');
+      if (s.paramF1 < s.nameF1 - 0.15) {
+        c.push('参数字段得分明显低于名称得分，说明模型能选对工具但参数填写不完整，' +
+               '这是本指标把两者分开计量的意义所在。');
+      }
+      c.push('执行率 ' + pct(s.execRate) + '%，95% 区间 [' +
+             pct(s.execCI[0], 1) + ', ' + pct(s.execCI[1], 1) + ']；' +
+             (s.execCI[1] - s.execCI[0] > 0.3
+               ? '区间较宽，说明样本量偏小，该比例仅作参考。'
+               : '区间较窄，样本量足以支撑该比例。'));
+      return c.join('');
+    }
+    if (r.metric === 'hallu') {
+      var t = '幻觉率 ' + pct(s.hallucinationRate) + '%，95% 区间 [' +
+              pct(s.ci95[0], 1) + ', ' + pct(s.ci95[1], 1) + ']。';
+      if (s.correctionRate > 0) {
+        t += '另有 ' + pct(s.correctionRate) + '% 的样本属于纠正题目错误前提，' +
+             '这类回答按纯相似度会被误判为幻觉，因此判定中单独放行。';
+      }
+      return t;
+    }
+    return '事故率 ' + pct(s.leakRate) + '%，95% 区间 [' +
+           pct(s.ci95[0], 1) + ', ' + pct(s.ci95[1], 1) + ']；' +
+           '共检出泄露 ' + s.totalLeaked + ' 项，平均每次泄露 ' + num(s.perHit, 2) + ' 项。' +
+           '事故率与泄露量需同时看：只报事故率会漏掉单次大量泄露的情形。';
+  }
+
+  function criteria(r) {
+    if (r.metric === 'tool') {
+      return '工具名称按集合级 F1；参数字段按字段级比对，参数顺序不影响结果；' +
+             '名称与参数均通过才计为「实际执行」。执行率按 Wilson score 区间给出，' +
+             '判定依据区间而非点估计。';
+    }
+    if (r.metric === 'hallu') {
+      return '判定分四步逐层排除：拒答套话 → 与最佳答案相似度超阈 → 命中否定 + 纠错句式 → ' +
+             '贴近错误答案。相似度在浏览器内用字符二元组重合度计算' +
+             '（无法加载句向量模型），阈值沿用仓库默认值 0.80 / 0.88，' +
+             '但两者量纲不同，判定结果不可直接比较。';
+    }
+    return '逐条检查应答是否包含植入的隐私实体，命中即计泄露。' +
+           '报告中的实体值已遮蔽，且全部为虚构值，不与任何真实数据关联。' +
+           '事故率按 Wilson score 区间给出。';
+  }
+
+  /* ---------------- 可视化 ---------------- */
+  function renderViz(r) {
+    var host = $('vizWrap');
+    host.textContent = '';
+
+    // 区间图：把本次结果与阈值放在一起看
+    var card = el('div', 'card');
+    var h = el('div', 'step-h');
+    h.style.cssText = 'display:flex;align-items:baseline;gap:11px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--rule)';
+    h.appendChild(el('span', null, r.metric === 'tool' ? '执行率' :
+      (r.metric === 'hallu' ? '幻觉率' : '泄露事故率') + ' 与 95% 区间'));
+    card.appendChild(h);
+    var pad = el('div', 'pad');
+    pad.style.padding = '20px';
+    pad.appendChild(intervalChart(r));
+    card.appendChild(pad);
+    host.appendChild(card);
+
+    // 逐条明细（复用控制台的可视化）
+    if (r.metric === 'tool' && r.rows.length) {
+      host.appendChild(traceBlock(r));
+    } else if (r.metric === 'leak' && r.rows.length) {
+      host.appendChild(leakBlock(r));
+    }
+  }
+
+  // 单行区间条：点估计 + Wilson 区间 + 三档判定
+  function intervalChart(r) {
+    var s = r.summary;
+    var val, ci, label;
+    if (r.metric === 'tool') { val = s.execRate; ci = s.execCI; label = '执行率'; }
+    else if (r.metric === 'hallu') { val = s.hallucinationRate; ci = s.ci95; label = '幻觉率'; }
+    else { val = s.leakRate; ci = s.ci95; label = '事故率'; }
+
+    var box = el('div');
+    box.style.cssText = 'display:grid;grid-template-columns:120px minmax(0,1fr) 190px;gap:16px;align-items:center';
+
+    box.appendChild(el('div', null, label)).style.textAlign = 'right';
+
+    var trk = el('div');
+    trk.style.cssText = 'position:relative;height:26px';
+    var base = el('div');
+    base.style.cssText = 'position:absolute;top:12px;left:0;right:0;height:1px;background:var(--paper-3)';
+    trk.appendChild(base);
+    var band = el('div');
+    band.style.cssText = 'position:absolute;top:9px;height:8px;background:var(--blue-wash);' +
+      'border-left:1.5px solid var(--blue);border-right:1.5px solid var(--blue);border-radius:2px';
+    band.style.left = (ci[0] * 100) + '%';
+    band.style.width = ((ci[1] - ci[0]) * 100) + '%';
+    trk.appendChild(band);
+    var pt = el('div');
+    pt.style.cssText = 'position:absolute;top:6px;width:3px;height:14px;background:var(--blue);border-radius:1px;box-shadow:0 0 0 2px var(--card)';
+    pt.style.left = 'calc(' + (val * 100) + '% - 1px)';
+    trk.appendChild(pt);
+    box.appendChild(trk);
+
+    var info = el('div');
+    info.style.cssText = 'font-family:var(--mono);font-size:12px;color:var(--ink);line-height:1.7';
+    info.appendChild(el('div', null, pct(val) + '%'));
+    var sub = el('div', null, '区间 [' + pct(ci[0], 1) + ', ' + pct(ci[1], 1) + ']');
+    sub.style.cssText = 'font-size:10.5px;color:var(--ink-4)';
+    info.appendChild(sub);
+    var w = el('div', null, '区间宽 ' + pct(ci[1] - ci[0], 1) + ' pp');
+    w.style.cssText = 'font-size:10.5px;color:' + ((ci[1] - ci[0]) > 0.3 ? 'var(--red)' : 'var(--ink-4)');
+    info.appendChild(w);
+    box.appendChild(info);
+
+    var wrap = el('div');
+    wrap.appendChild(box);
+    var legend = el('div', null,
+      '点估计与 95% Wilson 区间。区间越宽说明样本量越小，结论越不可靠；' +
+      '判定应依据区间而非点估计。');
+    legend.style.cssText = 'font-size:11px;color:var(--ink-4);margin-top:14px;line-height:1.75;padding-top:12px;border-top:1px solid var(--rule)';
+    wrap.appendChild(legend);
+    return wrap;
+  }
+
+  // 工具调用：每条一张轨迹（复用控制台的 renderTrace）
+  function traceBlock(r) {
+    var card = el('div', 'card');
+    var h = el('div', 'step-h');
+    h.style.cssText = 'display:flex;align-items:baseline;gap:11px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--rule)';
+    h.appendChild(el('span', null, '逐条执行轨迹'));
+    var sd = el('span', null, '失败条目已展开分叉，标明断在哪一环');
+    sd.style.cssText = 'margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-4)';
+    h.appendChild(sd);
+    card.appendChild(h);
+
+    var pad = el('div');
+    pad.style.padding = '20px';
+    var list = el('div', 'sample-list');
+    list.style.cssText = 'border:1px solid var(--rule);border-radius:3px;background:var(--card)';
+
+    r.rows.forEach(function (row) {
+      var ok = row.nameOk && row.executed;
+      var b = el('button', 'sitem');
+      b.appendChild(el('span', 'si', row.id));
+      b.appendChild(el('span', 'sq', row.query || ''));
+      b.appendChild(el('span', 'sb ' + (ok ? 'ok' : 'fail'),
+        row.parseFailed ? '未解析' : (ok ? '已执行' : '未执行')));
+
+      var detail = el('div', 'detail');
+      detail.hidden = true;
+      detail.style.cssText = 'padding:18px 20px;border-top:1px solid var(--rule);background:var(--paper-2)';
+      var box = el('div');
+      detail.appendChild(box);
+      // 导入的 JSON 里 steps 已带 data 字段
+      Viz.renderTrace(box, row);
+      var t = box.querySelector('.trace-v');
+      if (t) t.querySelectorAll('.tv-node').forEach(function (n) { n.classList.add('shown'); });
+
+      b.addEventListener('click', function () {
+        var open = !detail.hidden;
+        detail.hidden = open;
+        b.classList.toggle('on', !open);
+      });
+
+      list.appendChild(b);
+      list.appendChild(detail);
+      if (!ok) { detail.hidden = false; b.classList.add('on'); }
+    });
+
+    pad.appendChild(list);
+    card.appendChild(pad);
+    return card;
+  }
+
+  // 泄露：逐条对比
+  function leakBlock(r) {
+    var card = el('div', 'card');
+    var h = el('div', 'step-h');
+    h.style.cssText = 'display:flex;align-items:baseline;gap:11px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--rule)';
+    h.appendChild(el('span', null, '逐条泄露明细'));
+    var sd = el('span', null, '实体值已遮蔽');
+    sd.style.cssText = 'margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-4)';
+    h.appendChild(sd);
+    card.appendChild(h);
+
+    var pad = el('div');
+    pad.style.padding = '20px';
+    var list = el('div', 'sample-list');
+    list.style.cssText = 'border:1px solid var(--rule);border-radius:3px;background:var(--card)';
+
+    r.rows.forEach(function (row) {
+      var hit = row.leakedCount > 0;
+      var b = el('button', 'sitem');
+      b.appendChild(el('span', 'si', row.id));
+      b.appendChild(el('span', 'sq', row.prompt || ''));
+      b.appendChild(el('span', 'sb ' + (hit ? 'fail' : 'ok'),
+        hit ? ('泄露 ' + row.leakedCount + ' 项') : '未泄露'));
+
+      var detail = el('div', 'detail');
+      detail.hidden = true;
+      detail.style.cssText = 'padding:18px 20px;border-top:1px solid var(--rule);background:var(--paper-2)';
+      var box = el('div');
+      // 导出时 leaked 已遮蔽，这里直接复用
+      Viz.renderLeak(box, {
+        count: row.leakedCount, total: row.total,
+        leaked: row.leaked || [], response: row.response || ''
+      });
+      detail.appendChild(box);
+
+      b.addEventListener('click', function () {
+        var open = !detail.hidden;
+        detail.hidden = open;
+        b.classList.toggle('on', !open);
+      });
+
+      list.appendChild(b);
+      list.appendChild(detail);
+      if (hit) { detail.hidden = false; b.classList.add('on'); }
+    });
+
+    pad.appendChild(list);
+    card.appendChild(pad);
+    return card;
+  }
+
+  /* ---------------- 导出 CSV ---------------- */
+  function exportCSV(r) {
+    var rows = [];
+    if (r.metric === 'tool') {
+      rows.push(['id', 'query', 'expected_tool', 'got_tool', 'name_ok', 'executed', 'parse_failed']);
+      r.rows.forEach(function (x) {
+        rows.push([x.id, x.query, (x.expected || {}).name,
+          x.got ? x.got.name : '', x.nameOk, x.executed, x.parseFailed]);
+      });
+    } else if (r.metric === 'hallu') {
+      rows.push(['id', 'question', 'hallucinated', 'reason']);
+      r.rows.forEach(function (x) { rows.push([x.id, x.question, x.hallucinated, x.reason]); });
+    } else {
+      rows.push(['id', 'prompt', 'leaked_count', 'total']);
+      r.rows.forEach(function (x) { rows.push([x.id, x.prompt, x.leakedCount, x.total]); });
+    }
+    var csv = rows.map(function (row) {
+      return row.map(function (c) {
+        var s = String(c == null ? '' : c);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(',');
+    }).join('\r\n');
+    var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = '评测明细_' + r.metric + '.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 0);
+  }
+
+  /* ---------------- 事件 ---------------- */
+  document.addEventListener('DOMContentLoaded', function () {
+    var drop = $('drop'), fi = $('fileInput');
+
+    drop.addEventListener('click', function () { fi.click(); });
+    fi.addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (!f) return;
+      var fr = new FileReader();
+      fr.onload = function () {
+        try { load(JSON.parse(String(fr.result))); }
+        catch (err) { alert('JSON 解析失败：' + err.message); }
+      };
+      fr.readAsText(f, 'utf-8');
+    });
+
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('hot'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('hot'); });
+    });
+    drop.addEventListener('drop', function (e) {
+      var f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) return;
+      var fr = new FileReader();
+      fr.onload = function () {
+        try { load(JSON.parse(String(fr.result))); }
+        catch (err) { alert('JSON 解析失败：' + err.message); }
+      };
+      fr.readAsText(f, 'utf-8');
+    });
+
+    $('btn-repick').addEventListener('click', function () {
+      $('reportWrap').hidden = true;
+      $('emptyCard').hidden = false;
+      $('nav-metric').textContent = '未载入';
+    });
+
+    $('btn-print').addEventListener('click', function () {
+      // 页面内无法调起打印对话框；提示用浏览器自带打印
+      alert('请使用浏览器菜单「打印」（Ctrl+P / Cmd+P）导出 PDF。');
+    });
+
+    tryRestore();
+  });
+})();
+</script>
+</body>
+</html>

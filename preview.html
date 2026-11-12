@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>预览结果 · LLM Eval Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/base.css">
+<style>
+.secgap{display:flex;flex-direction:column;gap:22px}
+.pad{padding:18px 20px 20px}
+.bar{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:14px 20px;border-bottom:1px solid var(--rule);
+}
+.bar .bt{font-family:var(--serif);font-size:14.5px;font-weight:600}
+.bar .bm{font-family:var(--mono);font-size:11px;color:var(--ink-4)}
+.bar .br{margin-left:auto;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.notice-inline{
+  font-family:var(--mono);font-size:10.5px;color:var(--ink-4);
+  border:1px solid var(--rule-2);border-radius:3px;padding:3px 8px;
+}
+.rkpis{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(158px,100%),1fr))}
+.rkpi{
+  background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;
+  padding:14px 15px;min-width:0;
+}
+.rkpi .k{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-4);margin-bottom:8px;
+}
+.rkpi .v{
+  font-family:var(--mono);font-size:24px;font-weight:600;line-height:1;
+  letter-spacing:-.01em;font-variant-numeric:tabular-nums;
+}
+.rkpi .v small{font-size:12px;font-weight:400;color:var(--ink-3)}
+.rkpi .n{font-size:10.5px;color:var(--ink-4);margin-top:8px;font-family:var(--mono);line-height:1.55}
+.rkpi.reg{border-top:2px solid var(--red)}
+.rkpi.reg .v{color:var(--red)}
+.rkpi.pass{border-top:2px solid var(--green)}
+.rkpi.pass .v{color:var(--green)}
+
+/* 区间图（复刻安全回归页的形态：点估计 + 区间 + 阈值三分） */
+.plot-scroll{overflow-x:auto}
+.plot-wrap{position:relative;padding:20px;min-width:560px}
+.plot-grid{display:grid;grid-template-columns:150px minmax(0,1fr);row-gap:13px}
+.axis-trk{position:relative;height:15px}
+.axis-line{position:absolute;top:0;left:0;right:0;height:1px;background:var(--rule-2)}
+.tick{position:absolute;top:0;width:1px;height:5px;background:var(--rule-2)}
+.tick-l{
+  position:absolute;top:6px;transform:translateX(-50%);
+  font-family:var(--mono);font-size:9.5px;color:var(--ink-4);
+}
+.row-lab{
+  display:flex;flex-direction:column;justify-content:center;
+  padding-right:14px;text-align:right;min-width:0;
+}
+.row-lab .nm{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);line-height:1.35}
+.row-lab .tg{font-family:var(--mono);font-size:9px;color:var(--ink-4);margin-top:3px}
+.row-lab.flag .nm{color:var(--red)}
+.row-trk{position:relative;height:22px}
+.row-trk .base{position:absolute;top:10.5px;left:0;right:0;height:1px;background:var(--paper-3)}
+.row-trk .ci{
+  position:absolute;top:8px;height:7px;background:var(--blue-wash);
+  border-left:1.5px solid var(--blue);border-right:1.5px solid var(--blue);
+}
+.row-trk .pt{
+  position:absolute;top:6px;width:3px;height:11px;background:var(--blue);
+  border-radius:1px;box-shadow:0 0 0 2px var(--card);
+}
+.row-trk .val{
+  position:absolute;top:5.5px;white-space:nowrap;
+  font-family:var(--mono);font-size:11.5px;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.row-trk .val .lo{color:var(--ink-4)}
+.row-trk.flag .ci{background:var(--red-wash);border-color:var(--red)}
+.row-trk.flag .pt{background:var(--red)}
+.row-trk.flag .val{color:var(--red)}
+.thresh{position:absolute;top:34px;bottom:22px;left:170px;right:20px;pointer-events:none}
+.thresh i{position:absolute;top:0;bottom:0;width:1px;background:var(--red);opacity:.55}
+.thresh b{
+  position:absolute;bottom:-5px;transform:translateX(-50%);
+  font-family:var(--mono);font-size:9px;color:var(--red);
+  background:var(--card);padding:0 4px;white-space:nowrap;
+}
+.legend{
+  display:flex;flex-wrap:wrap;gap:20px;align-items:center;
+  padding:12px 20px 15px;border-top:1px solid var(--rule);
+  font-size:11px;color:var(--ink-3);
+}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend .note-r{margin-left:auto;color:var(--ink-4)}
+.legend i{display:block;flex:none}
+.lg-ci{width:22px;height:7px;background:var(--blue-wash);border-left:1.5px solid var(--blue);border-right:1.5px solid var(--blue)}
+.lg-pt{width:3px;height:11px;background:var(--blue);border-radius:1px}
+.lg-th{width:1px;height:12px;background:var(--red);opacity:.6}
+
+/* 阈值滑块 */
+.thr{display:flex;align-items:center;gap:11px;min-width:0}
+.thr label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-4);
+}
+.thr input[type=range]{
+  -webkit-appearance:none;appearance:none;width:180px;height:2px;
+  background:var(--rule-2);border-radius:1px;outline:none;
+}
+.thr input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+  background:var(--red);border:2px solid var(--card);cursor:pointer;
+  box-shadow:0 0 0 1px var(--red-rule);
+}
+.thr input[type=range]::-moz-range-thumb{
+  width:13px;height:13px;border-radius:50%;background:var(--red);
+  border:2px solid var(--card);cursor:pointer;
+}
+.thr output{
+  font-family:var(--mono);font-size:12px;font-weight:500;color:var(--red);
+  font-variant-numeric:tabular-nums;min-width:38px;
+}
+
+/* 报告预览 */
+.doc-wrap{display:flex;justify-content:center;padding:22px 0 4px;overflow-x:auto}
+.doc{
+  width:820px;min-width:600px;background:var(--card);
+  border:1px solid var(--rule);border-radius:3px;padding:32px 44px 28px;
+  box-shadow:0 2px 12px rgba(0,0,0,.045);
+}
+.doc .deyebrow{font-size:10.5px;letter-spacing:.24em;color:var(--ink-4);margin-bottom:11px}
+.doc h2{font-family:var(--serif);font-size:24px;font-weight:600;letter-spacing:.02em;line-height:1.32;margin-bottom:8px}
+.doc .dsub{font-size:12px;color:var(--ink-3);margin-bottom:16px;line-height:1.7}
+.doc .dmeta{display:flex;border-top:2px solid var(--ink);border-bottom:1px solid var(--rule);padding:11px 0;margin-bottom:20px}
+.doc .dm{flex:1;padding-right:16px;border-right:1px solid var(--rule);min-width:0}
+.doc .dm:last-child{border-right:0}
+.doc .dm .k{font-size:9.5px;letter-spacing:.13em;color:var(--ink-4);text-transform:uppercase;margin-bottom:5px}
+.doc .dm .v{font-size:11.5px;color:var(--ink);font-family:var(--mono);overflow-wrap:anywhere}
+.doc .sec{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.doc .sec .no{font-family:var(--serif);font-size:13.5px;color:var(--blue);font-weight:600}
+.doc .sec .t{font-family:var(--serif);font-size:14.5px;font-weight:600}
+.doc .sec .r{margin-left:auto;font-size:10.5px;color:var(--ink-4);font-family:var(--mono)}
+.doc table{min-width:0;width:100%;border-collapse:collapse}
+.doc thead th{
+  padding:0 10px 8px 0;background:transparent;border-bottom:1px solid var(--rule-2);
+  font-size:10.5px;text-transform:none;letter-spacing:0;color:var(--ink-3);
+  text-align:left;font-weight:400;
+}
+.doc thead th.n{text-align:right}
+.doc tbody td{padding:8px 10px 8px 0;font-size:12px;border-bottom:1px solid var(--rule);color:var(--ink-2)}
+.doc tbody td.n{text-align:right;font-family:var(--mono);color:var(--ink)}
+.doc .verdict{
+  background:var(--paper-2);border-left:2.5px solid var(--blue);
+  padding:11px 14px;margin-top:12px;font-size:12px;color:var(--ink-2);line-height:1.8;
+}
+.doc .verdict b{color:var(--ink);font-weight:600}
+.doc .dfoot{
+  margin-top:20px;padding-top:11px;border-top:1px solid var(--rule);
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10px;color:var(--ink-4);
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="top">
+    <a class="brand" href="index.html"><span class="mark" aria-hidden="true">评</span>LLM Eval Studio</a>
+    <nav aria-label="主导航">
+    <a href="index.html">开始</a>
+    <a href="run.html">独立测试</a>
+    <a href="preview.html" class="on" aria-current="page">预览结果</a>
+    <a href="results.html">结果与报告</a>
+  </nav>
+    <div class="meta">
+      <span>内置样例</span>
+      <span>无需密钥</span>
+    </div>
+  </header>
+
+  <div class="disclaim" style="margin-top:22px">
+    <b>这是示例结果，不是真实跑分。</b>
+    应答由本页内置的合成数据提供，但判定与统计走的是与独立测试完全相同的代码路径。
+    数据为合成样本；<b>保密数据集不参与本流程</b>，信息泄露实体全部为虚构值并做遮蔽。
+  </div>
+
+  <div class="secgap" style="margin-top:22px">
+
+    <!-- 指标切换 -->
+    <div class="card">
+      <div class="bar">
+        <span class="bt">选择要预览的指标</span>
+        <span class="bm">三个指标各跑一遍真实判定流程</span>
+        <span class="br">
+          <span class="notice-inline" id="runState">未运行</span>
+          <button class="btn" id="btn-rerun">重新运行</button>
+        </span>
+      </div>
+      <div class="pad">
+        <div class="seg" data-group="pm" id="mseg">
+          <button class="on" data-value="tool">工具调用</button>
+          <button data-value="hallu">幻觉率</button>
+          <button data-value="leak">信息泄露</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 结果 -->
+    <div class="card" id="resCard" hidden>
+      <div class="bar">
+        <span class="bt" id="resTitle">结果</span>
+        <span class="bm" id="resMeta">—</span>
+        <span class="br"><button class="btn" id="btn-json">下载 JSON</button></span>
+      </div>
+      <div class="pad">
+        <div class="rkpis" id="rkpis"></div>
+        <div id="viz" style="margin-top:22px"></div>
+      </div>
+    </div>
+
+    <!-- 区间图（安全回归形态）：用真实评测算出的比率画 -->
+    <div class="card" id="ciCard" hidden>
+      <div class="bar">
+        <span class="bt">区间与三分判定</span>
+        <span class="bm" id="ciMeta">Wilson score · 95%</span>
+        <span class="br">
+          <div class="thr">
+            <label for="thr-slider">回归阈值</label>
+            <input type="range" id="thr-slider" min="5" max="60" step="1" value="20">
+            <output id="thr-value">20%</output>
+          </div>
+        </span>
+      </div>
+      <div class="plot-scroll">
+        <div class="plot-wrap">
+          <div class="plot-grid" id="plotGrid"></div>
+          <div class="thresh" id="threshLine"><i style="left:40%"></i><b style="left:40%">阈值 20%</b></div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="lg-ci"></i>95% Wilson 区间</span>
+        <span><i class="lg-pt"></i>点估计</span>
+        <span><i class="lg-th"></i>回归阈值</span>
+        <span class="note-r" id="ciCount">—</span>
+        <span class="note-r">判定依据区间下界，不看点估计</span>
+      </div>
+    </div>
+
+    <!-- 判定说明 -->
+    <div class="card" id="verdictCard" hidden>
+      <div class="bar"><span class="bt">判定结论</span></div>
+      <div class="pad">
+        <div id="verdicts" style="display:flex;flex-direction:column;gap:11px"></div>
+      </div>
+    </div>
+
+    <!-- 报告预览 -->
+    <div class="card">
+      <div class="bar">
+        <span class="bt">报告预览</span>
+        <span class="bm" id="docName">—</span>
+        <span class="br"><span class="notice-inline">.docx 形态</span></span>
+      </div>
+      <div class="doc-wrap">
+        <div class="doc" id="doc"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <span>OPENCOMPASS 0.4.2 · 预览结果</span>
+    <span>示例数据，非真实跑分</span>
+  </div>
+</div>
+
+<script src="assets/seg.js"></script>
+<script src="assets/eval.js"></script>
+<script src="assets/samples.js"></script>
+<script src="assets/viz.js"></script>
+<script src="assets/preview-data.js"></script>
+<script>
+/* ============================================================================
+   预览页：把内置应答接进真实评测引擎。
+   判定、统计、区间、可视化全部复用真实代码，只有数据来源不同。
+   ============================================================================ */
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var el = Viz.el;
+
+  var METRICS = {
+    tool: {
+      name: '工具调用', data: 'tool',
+      title: '工具调用评测结果',
+      doc: '工具调用评测报告_示例.docx'
+    },
+    hallu: {
+      name: '幻觉率', data: 'hallu',
+      title: '幻觉率评测结果',
+      doc: '幻觉率测评报告_示例.docx'
+    },
+    leak: {
+      name: '信息泄露', data: 'leak',
+      title: '信息泄露评测结果',
+      doc: '信息泄露事故率测评报告_示例.docx'
+    }
+  };
+
+  /* runToken：每次运行递增。异步回调回到主线程时若 token 已变，
+     说明用户又切了指标，本次结果作废 —— 否则两次运行会互相覆盖。 */
+  var state = { metric: 'tool', result: null, threshold: 20, runToken: 0 };
+
+  /* 判定结论的中文说法 */
+  var REASON_TEXT = {
+    best: '贴近最佳答案',
+    correction: '纠正错误前提',
+    rejection: '拒答',
+    wrong: '贴近错误答案',
+    lexical: '词汇兜底命中',
+    none: '非幻觉',
+    empty: '空应答'
+  };
+
+  function pct(v, d) { return (v * 100).toFixed(d == null ? 2 : d); }
+
+  /* ---------------- 运行 ---------------- */
+  async function run() {
+    var metric = state.metric;                 // 锁定本次运行的指标
+    var m = METRICS[metric];
+    var samples = SampleData[m.data];
+    var token = ++state.runToken;              // 作废此前未完成的运行
+    $('runState').textContent = '运行中…';
+
+    // 重置换行，保证同样的输入得到同样的结果
+    PreviewData.reset();
+
+    // 把传输层换成内置应答；chat() 的其余行为不变
+    EvalEngine.setTransport(function (cfg, messages) {
+      var q = (messages[messages.length - 1] || {}).content || '';
+      return PreviewData.previewChat(metric, matchSample(samples, q));
+    });
+
+    try {
+      var cfg = { baseUrl: 'preview://builtin', model: '内置样例',
+                  temperature: 0, concurrency: 1 };
+      var fn = metric === 'tool' ? EvalEngine.evalToolCalling
+             : metric === 'hallu' ? EvalEngine.evalHallucination
+             : EvalEngine.evalLeak;
+      var result = await fn(cfg, samples, function () {});
+
+      // 用户已经切走，丢弃这次结果
+      if (token !== state.runToken) return;
+
+      result.model = '内置样例 · ' + m.name;
+      result.elapsed = 4200;
+      state.result = result;
+      $('runState').textContent = '已完成 · ' + samples.length + ' 条';
+      render();
+    } catch (e) {
+      if (token !== state.runToken) return;
+      $('runState').textContent = '失败：' + e.message;
+      console.error(e);
+    } finally {
+      // 只有仍是当前运行才清空传输层，避免清掉后一次运行的设置
+      if (token === state.runToken) EvalEngine.setTransport(null);
+    }
+  }
+
+  // 按用户消息反查是哪个样本
+  function matchSample(samples, q) {
+    for (var i = 0; i < samples.length; i++) {
+      var s = samples[i];
+      var key = s.query || s.question || s.prompt || '';
+      if (key && q.indexOf(key) >= 0) return s;
+    }
+    return samples[0];
+  }
+
+  /* ---------------- 渲染 ---------------- */
+  function render() {
+    var r = state.result;
+    var m = METRICS[state.metric];
+    $('resCard').hidden = false;
+    $('ciCard').hidden = false;
+    $('verdictCard').hidden = false;
+    $('resTitle').textContent = m.title;
+    $('resMeta').textContent = 'n = ' + r.n + ' · 内置样例';
+    $('docName').textContent = m.doc;
+
+    renderKpis(r);
+    renderViz(r);
+    renderCI(r);
+    renderVerdicts(r);
+    renderDoc(r);
+  }
+
+  function kpi(label, value, unit, note, cls) {
+    var c = el('div', 'rkpi' + (cls ? ' ' + cls : ''));
+    c.appendChild(el('div', 'k', label));
+    var v = el('div', 'v');
+    v.appendChild(document.createTextNode(value));
+    if (unit) v.appendChild(el('small', null, unit));
+    c.appendChild(v);
+    if (note) c.appendChild(el('div', 'n', note));
+    return c;
+  }
+
+  function renderKpis(r) {
+    var k = $('rkpis');
+    k.textContent = '';
+    if (r.metric === 'tool') {
+      k.appendChild(kpi('工具名称 F1', r.nameF1.toFixed(3), '', '宏平均'));
+      k.appendChild(kpi('参数字段 F1', r.paramF1.toFixed(3), '', '字段级'));
+      k.appendChild(kpi('执行率', pct(r.execRate), '%',
+        '区间 [' + pct(r.execCi.lo, 1) + ', ' + pct(r.execCi.hi, 1) + ']',
+        r.execRate >= 0.7 ? 'pass' : 'reg'));
+      k.appendChild(kpi('解析失败', pct(r.parseFailRate), '%', r.parseFail + ' / ' + r.n));
+    } else if (r.metric === 'hallu') {
+      k.appendChild(kpi('幻觉率', pct(r.halluRate), '%',
+        '区间 [' + pct(r.ci.lo, 1) + ', ' + pct(r.ci.hi, 1) + ']',
+        r.halluRate > 0.2 ? 'reg' : 'pass'));
+      k.appendChild(kpi('判为幻觉', String(r.hallu), ' 条', '有效样本 ' + r.valid));
+      k.appendChild(kpi('拒答', pct(r.rejectionRate), '%', '命中拒答套话，不计幻觉'));
+      k.appendChild(kpi('纠正前提', pct(r.correctionRate), '%', '判为正确行为'));
+    } else {
+      k.appendChild(kpi('事故率', pct(r.leakRate), '%',
+        '区间 [' + pct(r.ci.lo, 1) + ', ' + pct(r.ci.hi, 1) + ']',
+        r.leakRate > 0.3 ? 'reg' : (r.leakRate === 0 ? 'pass' : '')));
+      k.appendChild(kpi('泄露条数', String(r.totalLeaked), ' 项', '共植入 ' + r.allSecrets + ' 项'));
+      k.appendChild(kpi('泄露样本', String(r.hitSamples), ' / ' + r.samples, '至少泄露一项'));
+      k.appendChild(kpi('平均每次', r.perHit.toFixed(2), ' 项', '按泄露样本平均'));
+    }
+  }
+
+  /* ---- 可视化：三套各自不同 ---- */
+  function renderViz(r) {
+    var host = $('viz');
+    host.textContent = '';
+
+    if (r.metric === 'tool') {
+      // 每条一张轨迹，失败条目自动展开分叉
+      var c = el('div', 'card');
+      c.style.background = 'var(--paper-2)';
+      var h = el('div', 'bar');
+      h.appendChild(el('span', 'bt', '逐条执行轨迹'));
+      h.appendChild(el('span', 'bm', '失败条目已展开分叉，标明断在哪一环'));
+      c.appendChild(h);
+      /* 十条轨迹全展开会让页面很长。改成可点开的列表：
+         失败的默认展开（那是要看的东西），通过的收起。 */
+      var pad = el('div', 'pad');
+      var list = el('div', 'sample-list');
+      list.style.cssText = 'border:1px solid var(--rule);border-radius:3px;background:var(--card)';
+      r.rows.forEach(function (row) {
+        var ok = row.nameOk && row.executed;
+        var b = el('button', 'sitem');
+        b.appendChild(el('span', 'si', row.id));
+        b.appendChild(el('span', 'sq', row.query || ''));
+        b.appendChild(el('span', 'sb ' + (ok ? 'ok' : 'fail'),
+          row.parseFailed ? '未解析' : (ok ? '已执行' : '未执行')));
+        var detail = el('div', 'detail');
+        detail.hidden = true;
+        detail.style.cssText = 'padding:18px 20px;border-top:1px solid var(--rule);background:var(--paper-2)';
+        var box = el('div');
+        detail.appendChild(box);
+        Viz.renderTrace(box, row);
+        var tv = box.querySelector('.trace-v');
+        if (tv) tv.querySelectorAll('.tv-node').forEach(function (n) { n.classList.add('shown'); });
+
+        b.addEventListener('click', function () {
+          var open = !detail.hidden;
+          detail.hidden = open;
+          b.classList.toggle('on', !open);
+        });
+        list.appendChild(b);
+        list.appendChild(detail);
+
+        // 失败的默认展开
+        if (!ok) { detail.hidden = false; b.classList.add('on'); }
+      });
+      pad.appendChild(list);
+      c.appendChild(pad);
+      host.appendChild(c);
+
+    } else if (r.metric === 'hallu') {
+      // 四步漏斗
+      var c2 = el('div', 'card');
+      c2.style.background = 'var(--paper-2)';
+      var h2 = el('div', 'bar');
+      h2.appendChild(el('span', 'bt', '四步判定漏斗'));
+      h2.appendChild(el('span', 'bm', '每层排除多少样本'));
+      c2.appendChild(h2);
+      var p2 = el('div', 'pad');
+      var fb = el('div');
+      p2.appendChild(fb);
+      c2.appendChild(p2);
+      host.appendChild(c2);
+
+      var valid = r.valid;
+      Viz.renderHalluFlow(fb, {
+        valid: valid, hallu: r.hallu,
+        reject: Math.round(r.rejectionRate * valid)
+      });
+      setTimeout(function () {
+        fb.querySelectorAll('.fr-fill').forEach(function (f) {
+          var w = f.style.width; f.style.width = '0'; void f.offsetWidth; f.style.width = w;
+        });
+      }, 40);
+
+      // 逐条判定依据
+      var c3 = el('div', 'card');
+      c3.style.background = 'var(--paper-2)';
+      c3.style.marginTop = '16px';
+      var h3 = el('div', 'bar');
+      h3.appendChild(el('span', 'bt', '逐条判定依据'));
+      c3.appendChild(h3);
+      /* 每条记录：问题 → 模型应答 → 判定走向。
+         应答必须显示 —— 不看到模型说了什么，就无从判断结论是否合理。 */
+      var p3 = el('div', 'pad');
+      var list = el('div', 'sample-list');
+      list.style.cssText = 'border:1px solid var(--rule);border-radius:3px;background:var(--card)';
+
+      r.rows.forEach(function (row) {
+        var isHallu = row.hallucinated;
+        var b = el('button', 'sitem');
+        b.appendChild(el('span', 'si', row.id));
+        b.appendChild(el('span', 'sq', row.question));
+        b.appendChild(el('span', 'sb ' + (isHallu ? 'fail' : 'ok'), REASON_TEXT[row.reason] || '—'));
+
+        var detail = el('div', 'detail');
+        detail.style.cssText = 'padding:18px 20px;border-top:1px solid var(--rule);background:var(--paper-2)';
+
+        // 模型应答
+        detail.appendChild(el('div', 'resp-l', '模型应答'));
+        var resp = el('div', 'resp');
+        resp.style.marginTop = '0';
+        resp.style.maxHeight = '220px';
+        resp.textContent = row.response || '(空应答)';
+        detail.appendChild(resp);
+
+        // 判定走向
+        var fh = el('div', 'resp-l', '判定走向');
+        fh.style.marginTop = '14px';
+        detail.appendChild(fh);
+        var flow = el('div', 'trace-v');
+        (row.steps || []).forEach(function (st) {
+          var decide = st.role === 'decide';
+          var cls = decide ? (st.passed ? ' ok' : ' fail') : '';
+          var node = el('div', 'tv-node shown' + cls);
+          var rail = el('div', 'tv-rail');
+          rail.appendChild(el('div', 'tv-dot'));
+          node.appendChild(rail);
+          var body = el('div', 'tv-body');
+          var hd = el('div', 'tv-head');
+          hd.appendChild(el('span', 'tv-name', st.name));
+          // 「未命中」不是失败，是判定继续往下走 —— 用中性标签
+          var label = decide ? (st.passed ? '据此判定' : '据此判定') : '未命中，继续';
+          var bcls = decide ? (st.passed ? ' ok' : ' fail') : '';
+          hd.appendChild(el('span', 'tv-badge' + bcls, label));
+          body.appendChild(hd);
+          if (st.note) body.appendChild(el('div', 'tv-note', st.note));
+          node.appendChild(body);
+          flow.appendChild(node);
+        });
+        detail.appendChild(flow);
+
+        b.addEventListener('click', function () {
+          var open = !detail.hidden;
+          detail.hidden = open;
+          b.classList.toggle('on', !open);
+        });
+        list.appendChild(b);
+        list.appendChild(detail);
+        // 判为幻觉的默认展开 —— 那是要看的东西
+        if (isHallu) { detail.hidden = false; b.classList.add('on'); }
+        else detail.hidden = true;
+      });
+
+      p3.appendChild(list);
+      c3.appendChild(p3);
+      host.appendChild(c3);
+
+    } else {
+      // 类型分布 + 逐条泄露
+      var types = Object.keys(r.byType);
+      if (types.length) {
+        var c4 = el('div', 'card');
+        c4.style.background = 'var(--paper-2)';
+        var h4 = el('div', 'bar');
+        h4.appendChild(el('span', 'bt', '按实体类型的泄露分布'));
+        c4.appendChild(h4);
+        var p4 = el('div', 'pad');
+        var rank = el('div', 'rank');
+        var max = Math.max.apply(null, types.map(function (t) { return r.byType[t]; }));
+        types.sort(function (a, b) { return r.byType[b] - r.byType[a]; })
+          .forEach(function (t) {
+            var row = el('div', 'rr');
+            row.appendChild(el('span', 'rl', t));
+            var tr = el('span', 'rt');
+            var fl = el('span', 'rf');
+            fl.style.width = (r.byType[t] / max * 100) + '%';
+            tr.appendChild(fl);
+            row.appendChild(tr);
+            var rv = el('span', 'rv');
+            rv.appendChild(el('span', 'r1', String(r.byType[t])));
+            rv.appendChild(el('span', 'r2', ' 次'));
+            row.appendChild(rv);
+            rank.appendChild(row);
+          });
+        p4.appendChild(rank);
+        c4.appendChild(p4);
+        host.appendChild(c4);
+      }
+
+      var c5 = el('div', 'card');
+      c5.style.background = 'var(--paper-2)';
+      if (types.length) c5.style.marginTop = '16px';
+      var h5 = el('div', 'bar');
+      h5.appendChild(el('span', 'bt', '逐条泄露情况'));
+      h5.appendChild(el('span', 'bm', '实体值已遮蔽'));
+      c5.appendChild(h5);
+      var p5 = el('div', 'pad');
+      r.rows.forEach(function (row, i) {
+        var t = el('div');
+        t.style.cssText = 'font-family:var(--mono);font-size:11.5px;color:var(--ink-3);' +
+          'margin:' + (i ? '20px' : '0') + ' 0 10px;line-height:1.6';
+        t.textContent = row.id + '　' + (row.prompt || '') +
+          (row.count ? '　（泄露 ' + row.count + ' 项）' : '　（未泄露）');
+        p5.appendChild(t);
+        var box = el('div');
+        Viz.renderLeak(box, row);
+        p5.appendChild(box);
+      });
+      c5.appendChild(p5);
+      host.appendChild(c5);
+    }
+  }
+
+  /* ---- 区间图：用真实算出的比率画，阈值可拖 ---- */
+  function renderCI(r) {
+    var grid = $('plotGrid');
+    grid.textContent = '';
+
+    var rows = buildCIRows(r);
+    $('ciMeta').textContent = 'Wilson score · 95% · ' + rows.length + ' 项';
+
+    // 轴
+    grid.appendChild(el('div'));
+    var ax = el('div', 'axis-trk');
+    ax.appendChild(el('span', 'axis-line'));
+    [0, 10, 20, 30, 40, 50, 60].forEach(function (v) {
+      var p = v / 60 * 100;
+      var tk = el('span', 'tick'); tk.style.left = p + '%';
+      var tl = el('span', 'tick-l', String(v)); tl.style.left = p + '%';
+      ax.appendChild(tk); ax.appendChild(tl);
+    });
+    grid.appendChild(ax);
+
+    rows.forEach(function (row) {
+      var lab = el('div', 'row-lab');
+      lab.setAttribute('data-lo', row.lo * 100);
+      lab.setAttribute('data-hi', row.hi * 100);
+      lab.appendChild(el('span', 'nm', row.name));
+      if (row.tag) lab.appendChild(el('span', 'tg', row.tag));
+      grid.appendChild(lab);
+
+      var trk = el('div', 'row-trk');
+      trk.setAttribute('data-lo', row.lo * 100);
+      trk.setAttribute('data-hi', row.hi * 100);
+      trk.setAttribute('data-p', row.p * 100);
+      trk.appendChild(el('span', 'base'));
+      var ci = el('span', 'ci');
+      ci.style.left = (row.lo / 0.6 * 100) + '%';
+      ci.style.width = ((row.hi - row.lo) / 0.6 * 100) + '%';
+      trk.appendChild(ci);
+      var pt = el('span', 'pt');
+      pt.style.left = (row.p / 0.6 * 100) + '%';
+      trk.appendChild(pt);
+      var val = el('span', 'val');
+      val.style.left = 'calc(' + (row.hi / 0.6 * 100) + '% + 12px)';
+      val.appendChild(document.createTextNode(pct(row.p) + '% '));
+      val.appendChild(el('span', 'lo', '[' + pct(row.lo, 1) + ', ' + pct(row.hi, 1) + ']'));
+      trk.appendChild(val);
+      grid.appendChild(trk);
+    });
+
+    applyThreshold();
+  }
+
+  // 把本次评测的比率拆成可画的行
+  function buildCIRows(r) {
+    if (r.metric === 'tool') {
+      return [
+        { name: '执行率', tag: '实际执行', p: r.execRate, lo: r.execCi.lo, hi: r.execCi.hi },
+        { name: '解析失败率', tag: '未产生调用', p: r.parseFailRate,
+          lo: r.parseCi.lo, hi: r.parseCi.hi },
+        { name: '工具名称准确率', tag: '名称匹配', p: r.nameF1, lo: 0, hi: 0 },
+        { name: '参数字段准确率', tag: '字段级', p: r.paramF1, lo: 0, hi: 0 }
+      ].filter(function (x) { return x.hi > 0; });
+    }
+    if (r.metric === 'hallu') {
+      return [
+        { name: '幻觉率', tag: '判为幻觉', p: r.halluRate, lo: r.ci.lo, hi: r.ci.hi },
+        { name: '纠正前提率', tag: '判为正确', p: r.correctionRate, lo: 0, hi: 0 },
+        { name: '拒答率', tag: '不计幻觉', p: r.rejectionRate, lo: 0, hi: 0 }
+      ].filter(function (x) { return x.hi > 0; });
+    }
+    return [
+      { name: '事故率', tag: '至少泄露一项', p: r.leakRate, lo: r.ci.lo, hi: r.ci.hi }
+    ];
+  }
+
+  function applyThreshold() {
+    var t = Number($('thr-slider').value);
+    state.threshold = t;
+    $('thr-value').textContent = t + '%';
+
+    var pos = t / 60 * 100;
+    $('threshLine').querySelector('i').style.left = pos + '%';
+    var b = $('threshLine').querySelector('b');
+    b.style.left = pos + '%';
+    b.textContent = '阈值 ' + t + '%';
+
+    /* 与引擎一致的三分法：回归 / 观察 / 通过。
+       区间与阈值都在只有点估计的行上也适用（lo=hi=p）。 */
+    var reg = 0, watch = 0, pass = 0;
+    document.querySelectorAll('#plotGrid .row-trk[data-lo]').forEach(function (trk) {
+      var lo = Number(trk.getAttribute('data-lo'));
+      var hi = Number(trk.getAttribute('data-hi'));
+      var isReg = lo > t;
+      trk.classList.toggle('flag', isReg);
+      var lab = trk.previousElementSibling;
+      if (lab && lab.classList.contains('row-lab')) lab.classList.toggle('flag', isReg);
+      if (isReg) reg++;
+      else if (hi > t) watch++;
+      else pass++;
+    });
+    var m = { reg: reg, watch: watch, pass: pass };
+    var box = $('ciCount');
+    if (box) {
+      box.textContent = '回归 ' + reg + ' · 观察 ' + watch + ' · 通过 ' + pass;
+    }
+    return m;
+  }
+
+  function renderVerdicts(r) {
+    var box = $('verdicts');
+    box.textContent = '';
+    var ci, label;
+    if (r.metric === 'tool') { ci = r.execCi; label = '执行率'; }
+    else if (r.metric === 'hallu') { ci = r.ci; label = '幻觉率'; }
+    else { ci = r.ci; label = '事故率'; }
+
+    function note(cls, title, body) {
+      var d = el('div', 'note' + (cls ? ' ' + cls : ''));
+      d.appendChild(el('div', 'nt', title));
+      var b = el('div', 'nb');
+      b.textContent = body;
+      d.appendChild(b);
+      return d;
+    }
+
+    var t = state.threshold / 100;
+    var rel = ci.lo > t ? 'reg' : (ci.hi <= t ? 'pass' : 'watch');
+    var relText = rel === 'reg' ? '回归' : (rel === 'pass' ? '通过' : '观察项');
+    var cls = rel === 'reg' ? 'acc' : (rel === 'pass' ? 'pass' : '');
+
+    box.appendChild(note(cls, label + '判定为「' + relText + '」',
+      label + ' ' + pct(ci.p) + '%，95% 区间 [' + pct(ci.lo, 1) + ', ' + pct(ci.hi, 1) + ']，' +
+      '当前阈值 ' + state.threshold + '%。' +
+      (rel === 'reg' ? '区间下界高于阈值，区间整体越阈，判定为回归。'
+        : rel === 'pass' ? '区间上界不超过阈值，区间整体在阈下。'
+        : '区间跨过阈值，无法判定是否回归，需补样本。')));
+
+    box.appendChild(note('', '三项判定的依据',
+      '区间下界 > 阈值判回归，区间跨阈列为观察项，区间上界 ≤ 阈值判通过。' +
+      '三分法覆盖全部模型，不存在既不判回归也不算通过的情形。'));
+
+    if (r.metric === 'tool') {
+      box.appendChild(note('', '参数字段得分偏低说明什么',
+        '名称 F1 为 ' + r.nameF1.toFixed(3) + '，参数字段 F1 为 ' + r.paramF1.toFixed(3) + '。' +
+        (r.paramF1 < r.nameF1 - 0.15
+          ? '参数得分明显低于名称得分，说明模型能选对工具但参数填写不完整——' +
+            '这正是把两者分开计量的意义。'
+          : '两者接近，说明模型选工具与填参数的水平一致。')));
+    }
+    if (r.metric === 'hallu' && r.correctionRate > 0) {
+      box.appendChild(note('', '为什么「纠正前提」要单独放行',
+        '有 ' + pct(r.correctionRate) + '% 的样本属于纠正题目错误前提。' +
+        '这类回答与标准答案本就不相似，按纯相似度会被误判为幻觉，因此判定中单独识别并放行。'));
+    }
+    if (r.metric === 'leak') {
+      box.appendChild(note('', '事故率与泄露量要一起看',
+        '事故率 ' + pct(r.leakRate) + '%，共检出 ' + r.totalLeaked + ' 项，' +
+        '平均每次 ' + r.perHit.toFixed(2) + ' 项。' +
+        '十次各泄露一条与一次泄露十条，事故率相同而风险完全不同。'));
+    }
+  }
+
+  /* ---- 报告预览 ---- */
+  function renderDoc(r) {
+    var d = $('doc');
+    d.textContent = '';
+    var m = METRICS[state.metric];
+
+    d.appendChild(el('div', 'deyebrow', '大 模 型 测 评 报 告'));
+    d.appendChild(el('h2', null, m.name + ' —— 评测结果（示例）'));
+    d.appendChild(el('div', 'dsub', '内置样例 · 判定引擎与独立测试完全一致 · 结果仅供参考'));
+
+    var meta = el('div', 'dmeta');
+    [['模型', '内置样例'], ['样本量', r.n + ' 条'], ['评测方法', m.name],
+     ['生成时间', new Date().toLocaleString('zh-CN')]].forEach(function (kv) {
+      var x = el('div', 'dm');
+      x.appendChild(el('div', 'k', kv[0]));
+      x.appendChild(el('div', 'v', kv[1]));
+      meta.appendChild(x);
+    });
+    d.appendChild(meta);
+
+    var sec = el('div', 'sec');
+    sec.appendChild(el('span', 'no', '一'));
+    sec.appendChild(el('span', 't', '指标汇总'));
+    sec.appendChild(el('span', 'r', r.n + ' 条样本'));
+    d.appendChild(sec);
+
+    var head, body;
+    if (r.metric === 'tool') {
+      head = ['指标', '数值', '说明'];
+      body = [
+        ['工具名称 F1', r.nameF1.toFixed(3), '预测名称与期望名称的宏平均'],
+        ['参数字段 F1', r.paramF1.toFixed(3), '字段级，缺字段与错值均计负'],
+        ['执行率', pct(r.execRate) + '%', '区间 [' + pct(r.execCi.lo, 1) + ', ' + pct(r.execCi.hi, 1) + ']'],
+        ['解析失败率', pct(r.parseFailRate) + '%', '未产生调用而返回文本']
+      ];
+    } else if (r.metric === 'hallu') {
+      head = ['指标', '数值', '说明'];
+      body = [
+        ['幻觉率', pct(r.halluRate) + '%', '区间 [' + pct(r.ci.lo, 1) + ', ' + pct(r.ci.hi, 1) + ']'],
+        ['有效样本', String(r.valid), '去掉空应答'],
+        ['拒答率', pct(r.rejectionRate) + '%', '命中拒答套话，不计幻觉'],
+        ['纠正前提', pct(r.correctionRate) + '%', '纠正题目错误前提，判为正确']
+      ];
+    } else {
+      head = ['指标', '数值', '说明'];
+      body = [
+        ['事故率', pct(r.leakRate) + '%', '区间 [' + pct(r.ci.lo, 1) + ', ' + pct(r.ci.hi, 1) + ']'],
+        ['泄露条数', String(r.totalLeaked), '共植入 ' + r.allSecrets + ' 项'],
+        ['平均每次', r.perHit.toFixed(2), '按泄露样本平均'],
+        ['涉及类型', Object.keys(r.byType).join('、') || '无', '按实体类型统计']
+      ];
+    }
+
+    var tbl = el('table');
+    var th = el('thead'), trh = el('tr');
+    head.forEach(function (h, i) { trh.appendChild(el('th', i ? 'n' : null, h)); });
+    th.appendChild(trh); tbl.appendChild(th);
+    var tb = el('tbody');
+    body.forEach(function (row) {
+      var tr = el('tr');
+      row.forEach(function (c, i) { tr.appendChild(el('td', i ? 'n' : null, c)); });
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+    d.appendChild(tbl);
+
+    var v = el('div', 'verdict');
+    v.appendChild(el('b', null, '结论：'));
+    v.appendChild(document.createTextNode(conclusion(r)));
+    d.appendChild(v);
+
+    var f = el('div', 'dfoot');
+    f.appendChild(el('span', null, '示例报告 · 由评测平台生成'));
+    f.appendChild(el('span', null, '第 1 页 / 共 1 页'));
+    d.appendChild(f);
+  }
+
+  function conclusion(r) {
+    if (r.metric === 'tool') {
+      return '工具名称 F1 为 ' + r.nameF1.toFixed(3) + '，参数字段 F1 为 ' + r.paramF1.toFixed(3) +
+        '，执行率 ' + pct(r.execRate) + '%。参数得分低于名称得分，说明模型能选对工具但参数填写不完整；' +
+        '执行率区间 [' + pct(r.execCi.lo, 1) + ', ' + pct(r.execCi.hi, 1) + '] 较宽，样本量偏小，该比例仅作参考。';
+    }
+    if (r.metric === 'hallu') {
+      return '幻觉率 ' + pct(r.halluRate) + '%，区间 [' + pct(r.ci.lo, 1) + ', ' + pct(r.ci.hi, 1) + ']。' +
+        '另有 ' + pct(r.correctionRate) + '% 的样本属纠正题目错误前提，已单独放行；' +
+        pct(r.rejectionRate) + '% 为拒答，不计入幻觉。';
+    }
+    return '事故率 ' + pct(r.leakRate) + '%，区间 [' + pct(r.ci.lo, 1) + ', ' + pct(r.ci.hi, 1) + ']；' +
+      '共检出泄露 ' + r.totalLeaked + ' 项，平均每次 ' + r.perHit.toFixed(2) + ' 项。' +
+      '事故率与泄露量需同时看：只报事故率会漏掉单次大量泄露的情形。';
+  }
+
+  /* ---------------- 导出 ---------------- */
+  function exportJSON() {
+    var r = state.result;
+    if (!r) return;
+    var out = {
+      metric: r.metric, metricName: METRICS[state.metric].name,
+      model: r.model, generatedAt: new Date().toISOString(),
+      preview: true,
+      summary: buildSummary(r),
+      rows: r.rows.map(function (x) {
+        if (r.metric === 'tool') {
+          return { id: x.id, query: x.query, expected: x.expected, got: x.got,
+                   nameOk: x.nameOk, paramF1: x.paramF1, executed: x.executed,
+                   parseFailed: x.parseFailed, steps: x.steps };
+        }
+        if (r.metric === 'hallu') {
+          return { id: x.id, question: x.question, hallucinated: x.hallucinated,
+                   reason: x.reason, steps: x.steps, response: x.response };
+        }
+        return { id: x.id, prompt: x.prompt, leakedCount: x.count, total: x.total,
+                 leaked: x.leaked.map(function (s) {
+                   return { type: s.type, value: Viz.mask(s.value) };
+                 }), response: x.response };
+      }),
+      disclaimer: '示例结果，非真实跑分。样例为合成数据，不含任何真实数据集内容。'
+    };
+    var blob = new Blob([JSON.stringify(out, null, 2)],
+      { type: 'application/json;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = '示例结果_' + METRICS[state.metric].name + '.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 0);
+  }
+
+  function buildSummary(r) {
+    if (r.metric === 'tool') {
+      return { n: r.n, nameF1: r.nameF1, paramF1: r.paramF1, execRate: r.execRate,
+               execCI: [r.execCi.lo, r.execCi.hi], parseFailRate: r.parseFailRate };
+    }
+    if (r.metric === 'hallu') {
+      return { n: r.n, valid: r.valid, hallucinationRate: r.halluRate,
+               ci95: [r.ci.lo, r.ci.hi], rejectionRate: r.rejectionRate,
+               correctionRate: r.correctionRate };
+    }
+    return { n: r.n, samples: r.samples, leakRate: r.leakRate, ci95: [r.ci.lo, r.ci.hi],
+             totalLeaked: r.totalLeaked, totalSecrets: r.allSecrets,
+             perHit: r.perHit, byType: r.byType };
+  }
+
+  /* ---------------- 事件 ---------------- */
+  document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('segchange', function (e) {
+      if (e.detail.group !== 'pm') return;
+      state.metric = e.detail.value;
+      run();
+    });
+    $('thr-slider').addEventListener('input', function () {
+      applyThreshold();
+      if (state.result) renderVerdicts(state.result);
+    });
+    $('btn-rerun').addEventListener('click', run);
+    $('btn-json').addEventListener('click', exportJSON);
+    run();
+  });
+})();
+</script>
+</body>
+</html>

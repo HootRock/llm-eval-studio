@@ -1,0 +1,18 @@
+# 依赖与构建产物（本项目零依赖，一般不会产生）
+node_modules/
+dist/
+
+# 本地运行时文件
+*.log
+.env
+.env.*
+
+# 编辑器与系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 评测输出（若在本地跑过）
+outputs/
+*.docx

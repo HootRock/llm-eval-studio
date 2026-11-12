@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LLM Eval Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/base.css">
+<style>
+/* 开始界面：上面说明这是什么，下面两个入口并排 */
+.hero{padding:8px 0 26px;border-bottom:1px solid var(--rule)}
+.hero .eyebrow{
+  font-family:var(--mono);font-size:10px;letter-spacing:.17em;
+  text-transform:uppercase;color:var(--ink-4);margin-bottom:13px;
+}
+.hero h1{
+  font-family:var(--serif);font-size:clamp(23px,3.2vw,32px);font-weight:600;
+  letter-spacing:.01em;line-height:1.34;margin:0 0 12px;max-width:26em;
+}
+.hero .sub{font-size:13.5px;color:var(--ink-3);max-width:64ch;line-height:1.85}
+.hero .sub b{color:var(--ink-2);font-weight:500}
+
+.modes{
+  display:grid;gap:18px;margin-top:28px;
+  grid-template-columns:repeat(auto-fit,minmax(min(330px,100%),1fr));
+}
+.mode{
+  display:flex;flex-direction:column;gap:14px;min-width:0;
+  background:var(--card);border:1px solid var(--rule);border-radius:5px;
+  padding:24px 24px 22px;text-decoration:none;color:inherit;
+  border-top:3px solid var(--ink);
+}
+.mode:hover{background:var(--paper-2)}
+.mode.pri{border-top-color:var(--blue)}
+.mode .mtag{
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-4);
+}
+.mode.pri .mtag{color:var(--blue)}
+.mode .mt{font-family:var(--serif);font-size:19px;font-weight:600;line-height:1.4}
+.mode .md{font-size:12.5px;color:var(--ink-3);line-height:1.85;flex:1}
+.mode .md b{color:var(--ink-2);font-weight:500}
+.mode .ml{
+  display:flex;flex-direction:column;gap:7px;margin-top:2px;
+  padding-top:14px;border-top:1px solid var(--rule);
+}
+.mode .ml li{
+  list-style:none;font-size:12px;color:var(--ink-3);
+  padding-left:15px;position:relative;line-height:1.65;
+}
+.mode .ml li::before{
+  content:"";position:absolute;left:0;top:7px;width:5px;height:5px;
+  border-radius:50%;background:var(--rule-2);
+}
+.mode.pri .ml li::before{background:var(--blue)}
+.mode .go{
+  font-family:var(--mono);font-size:12px;color:var(--ink);
+  display:flex;align-items:center;gap:7px;margin-top:4px;
+}
+.mode.pri .go{color:var(--blue)}
+
+.facts{
+  display:grid;gap:14px;margin-top:30px;
+  grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr));
+}
+.fx{
+  background:var(--card);border:1px solid var(--rule);border-radius:4px;
+  padding:14px 15px;min-width:0;
+}
+.fx .k{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-4);margin-bottom:8px;
+}
+.fx .v{
+  font-family:var(--mono);font-size:21px;font-weight:600;line-height:1;
+  letter-spacing:-.01em;font-variant-numeric:tabular-nums;
+}
+.fx .v small{font-size:11.5px;font-weight:400;color:var(--ink-3)}
+.fx .n{font-size:11px;color:var(--ink-4);margin-top:8px;line-height:1.6}
+
+.sec-h2{
+  display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:32px 0 15px;
+}
+.sec-h2 h2{font-family:var(--serif);font-size:16px;font-weight:600}
+.sec-h2 .sd{margin-left:auto;font-size:11.5px;color:var(--ink-4)}
+
+/* 三个指标的说明卡 */
+.mgrid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(290px,100%),1fr))}
+.mc{
+  background:var(--card);border:1px solid var(--rule);border-radius:4px;
+  padding:18px 19px;display:flex;flex-direction:column;gap:10px;min-width:0;
+}
+.mc .mk{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-4);
+}
+.mc .mt2{font-family:var(--serif);font-size:16px;font-weight:600;line-height:1.4}
+.mc .mb{font-size:12.5px;color:var(--ink-3);line-height:1.85}
+.mc .mb b{color:var(--ink);font-weight:600}
+.mc .mwhy{
+  margin-top:2px;padding-left:12px;border-left:2px solid var(--blue);
+  font-size:12px;color:var(--ink-3);line-height:1.8;
+}
+.mc .mwhy .wl{
+  display:block;font-family:var(--mono);font-size:9px;letter-spacing:.12em;
+  color:var(--blue);margin-bottom:4px;
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="top">
+    <a class="brand" href="index.html"><span class="mark" aria-hidden="true">评</span>LLM Eval Studio</a>
+    <nav aria-label="主导航">
+    <a href="index.html" class="on" aria-current="page">开始</a>
+    <a href="run.html">独立测试</a>
+    <a href="preview.html">预览结果</a>
+    <a href="results.html">结果与报告</a>
+  </nav>
+    <div class="meta">
+      <span>OpenCompass 0.4.2</span>
+      <span>结果仅供参考</span>
+    </div>
+  </header>
+
+  <div style="margin-top:28px">
+    <div class="hero">
+      <div class="eyebrow">LLM Eval Studio · 大模型评测工具 · 浏览器内运行</div>
+      <h1>评测大模型的工具调用、幻觉率与信息泄露</h1>
+      <p class="sub">
+        直接选模型开测，也可以先看一份完整的示例结果，了解三个指标各自怎么判定。
+      <b>密钥只留在你的浏览器里；保密数据集不参与本流程。</b>
+      </p>
+    </div>
+
+    <!-- ==================== 两个入口 ==================== -->
+    <div class="modes">
+
+      <a class="mode pri" href="run.html">
+        <span class="mtag">模式一 · 接入模型</span>
+        <span class="mt">独立测试</span>
+        <span class="md">
+          填自己的 API 地址与密钥即可开始评测，实时查看每条请求的执行轨迹与判定依据。
+          <b>密钥只留在浏览器内存里，不经过本站任何服务器。</b>
+        </span>
+        <ul class="ml">
+          <li>真实调用，指标由本地判定引擎计算</li>
+          <li>工具调用：名称 F1 / 参数 F1 / 执行率，逐步骤轨迹</li>
+          <li>幻觉率：四步判定，逐层排除</li>
+          <li>信息泄露：泄露条数与事故率</li>
+          <li>支持导入 JSON / CSV 数据，导出 JSON / CSV 报告</li>
+        </ul>
+        <span class="go">进入独立测试 →</span>
+      </a>
+
+      <a class="mode" href="preview.html">
+        <span class="mtag">模式二 · 无需密钥</span>
+        <span class="mt">预览结果</span>
+        <span class="md">
+          用内置样例跑出的一份完整结果，包含三个指标的全部图表与逐条明细，
+          不必配置接口即可查看判定过程。
+        </span>
+        <ul class="ml">
+          <li>区间图与三分判定：回归 / 观察 / 通过</li>
+          <li>工具调用轨迹与分叉：断在哪一环</li>
+          <li>幻觉四步漏斗与逐条依据</li>
+          <li>泄露条数、类型分布与上下文</li>
+        </ul>
+        <span class="go">查看示例结果 →</span>
+      </a>
+
+    </div>
+
+    <!-- ==================== 规模 ==================== -->
+    <div class="facts">
+      <div class="fx">
+        <div class="k">评测指标</div>
+        <div class="v">3<small> 项</small></div>
+        <div class="n">工具调用 · 幻觉率 · 信息泄露</div>
+      </div>
+      <div class="fx">
+        <div class="k">内置样例</div>
+        <div class="v">32<small> 条</small></div>
+        <div class="n">三组合成样本，结构对齐仓库数据集</div>
+      </div>
+      <div class="fx">
+        <div class="k">接入方式</div>
+        <div class="v">OpenAI<small> 兼容</small></div>
+        <div class="n">直连或走附带的本机代理</div>
+      </div>
+      <div class="fx">
+        <div class="k">密钥</div>
+        <div class="v">仅内存<small></small></div>
+        <div class="n">不落盘、不外发、关闭即消失</div>
+      </div>
+    </div>
+
+    <!-- ==================== 三个指标 ==================== -->
+    <div class="sec-h2">
+      <h2>三个指标</h2>
+      <span class="sd">每项都说明了为什么这样设计</span>
+    </div>
+
+    <div class="mgrid">
+      <div class="mc">
+        <span class="mk">工具调用</span>
+        <span class="mt2">调用准确率与执行率</span>
+        <span class="mb">
+          给模型工具定义，让它选择并填写参数。分三处计量：<b>工具名称 F1</b> 看选对没有、
+          <b>参数字段 F1</b> 看给全没有、<b>执行率</b>看真的跑起来没有。
+        </span>
+        <span class="mwhy">
+          <span class="wl">为什么这样设计</span>
+          只看工具名会把「说对了名字但没执行」记为成功。拆开后，
+          一条失败调用能定位到是哪一环断的。
+        </span>
+      </div>
+
+      <div class="mc">
+        <span class="mk">幻觉率</span>
+        <span class="mt2">四步逐层判定</span>
+        <span class="mb">
+          拒答识别 → 贴近最佳答案 → 纠正错误前提 → 贴近错误答案，逐层排除。
+        </span>
+        <span class="mwhy">
+          <span class="wl">为什么这样设计</span>
+          模型主动纠正题目的错误前提时，回答与标准答案本就不相似，
+          却恰恰是正确行为。按纯相似度会被误判成幻觉。
+        </span>
+      </div>
+
+      <div class="mc">
+        <span class="mk">信息泄露</span>
+        <span class="mt2">事故率与泄露量</span>
+        <span class="mb">
+          逐条检查应答是否包含植入的隐私实体，统计泄露条数与发生泄露的样本占比。
+        </span>
+        <span class="mwhy">
+          <span class="wl">为什么这样设计</span>
+          十次各泄露一条与一次泄露十条，事故率相同而风险完全不同。
+          两项必须同时报出。
+        </span>
+      </div>
+    </div>
+
+    <!-- ==================== 说明 ==================== -->
+    <div class="sec-h2">
+      <h2>使用说明</h2>
+    </div>
+    <div class="disclaim">
+      <b>结果仅供参考。</b>评测请求由您的浏览器直接发往所配置的接口，密钥与数据不离开本机。
+      内置样例为合成数据；<b>数据集目录下的真实内容属保密资料，本工具不会读取、不会上传、
+      也不会在结果中呈现</b>。信息泄露指标中的隐私实体全部为虚构值并做遮蔽显示。
+    </div>
+
+    <div class="callout" style="margin-top:16px">
+      <b>接口直连受限时：</b>多数大模型接口不允许浏览器跨域直连。此时启动附带的本机代理
+      <span class="mono">node proxy.mjs</span>，页面上把 API 地址填
+      <span class="mono">http://localhost:8788/v1/chat/completions</span>，
+      真实上游地址填进随之出现的输入框，由代理转发。
+    </div>
+
+    <div class="callout" style="margin-top:16px">
+      <b>已知差异：</b>幻觉率的相似度在浏览器内用字符二元组重合度计算
+      （无法加载句向量模型），阈值已按实测重新标定，
+      但与仓库中的 Python 实现不可直接比较。
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <span>OPENCOMPASS 0.4.2 · LLM Eval Studio</span>
+    <span>结果仅供参考</span>
+  </div>
+</div>
+
+</body>
+</html>
